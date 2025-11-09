@@ -1,2 +1,2 @@
-# ArteDataStore
-A small datastoreg service with a REST API
+# ArteDataStorage
+A small datastorage service with a REST API
