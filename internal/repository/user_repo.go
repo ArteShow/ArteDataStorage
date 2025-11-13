@@ -17,15 +17,15 @@ func hashPassword(password string) (string, error) {
 	return string(bytes), nil
 }
 
-func CreateUser(username, password string) (error, string) {
+func CreateUser(username, password string) (string, error) {
 	hash, err := hashPassword(password)
-	if err != nil{
-		return err, ""
+	if err != nil {
+		return "", err
 	}
 
 	bytes := make([]byte, 16)
 	if _, err := rand.Read(bytes); err != nil {
-		return err, ""
+		return "", err
 	}
 
 	id := hex.EncodeToString(bytes)
@@ -35,10 +35,10 @@ func CreateUser(username, password string) (error, string) {
 
 	var exists bool
 	err = database.DB.QueryRow("SELECT EXISTS(SELECT FROM users WHERE password = ? AND username = ?)", password, username).Scan(&exists)
-	if err != nil{
-		return err, ""
-	} else if !exists{
-		return errors.New("User with the same username or password already exists"), ""
+	if err != nil {
+		return "", err
+	} else if !exists {
+		return "", errors.New("user with the same username or password already exists")
 	}
 
 	_, err2 := database.DB.Exec(
@@ -47,60 +47,63 @@ func CreateUser(username, password string) (error, string) {
 	)
 
 	if err2 != nil {
-		return err2, ""
+		return "", err2
 	}
 
-	return nil, id
+	return id, nil
 }
 
-func DeleteUser(id string) error { 
+func DeleteUser(id string) error {
 	database.Connect()
 	defer database.Close()
 
 	_, err := database.DB.Exec("DELETE FROM users WHERE id = ?", id)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func UpdateUsername(id, username string) error{
+func UpdateUsername(id, username string) error {
 	database.Connect()
 	defer database.Close()
 
 	_, err := database.DB.Exec("UPDATE users SET username = ? WHERE id = ?", username, id)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func UpdateUserPassword(id, password, newPassword string) error{
+func UpdateUserPassword(id, password, newPassword string) error {
 	database.Connect()
 	defer database.Close()
 
 	hashedPassword, err := hashPassword(password)
-	if err != nil{
+	if err != nil {
 		return err
 	}
-	
+
 	hashNewPassword, err := hashPassword(newPassword)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
 	var currentPassword string
 	err = database.DB.QueryRow("SELECT password FROM users WHERE id = ?", id).Scan(&currentPassword)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
-	if currentPassword == hashedPassword{
+	if currentPassword == hashedPassword {
 		_, err = database.DB.Exec("UPDATE users SET password = ? WHERE id = ?", hashNewPassword, id)
-	} else{
-		return errors.New("Your old password doesn't mach that you have given!")
+		if err != nil {
+			return err
+		}
+	} else {
+		return errors.New("your old password doesn't mach that you have given")
 	}
 
 	return nil
@@ -112,20 +115,20 @@ func GetUserId(username, password string) (string, error) {
 
 	var id string
 	err := database.DB.QueryRow("SELECT id FROM users WHERE password = ? AND username = ?", password, username).Scan(&id)
-	if err != nil{
+	if err != nil {
 		return "", err
 	}
 
-	return id ,nil
+	return id, nil
 }
 
-func GetUserPasswordAndUsername(id string) (string, string, error){
+func GetUserPasswordAndUsername(id string) (string, string, error) {
 	database.Connect()
 	defer database.Close()
 
-	var password, username  string
+	var password, username string
 	err := database.DB.QueryRow("SELECT password AND username FROM users WHERE id = ?", id).Scan(&password, &username)
-	if err != nil{
+	if err != nil {
 		return "", "", err
 	}
 

@@ -11,9 +11,11 @@ func main() {
 
 	logger.Log.Println("Preparing database")
 	if err := database.Connect(); err != nil {
-		logger.Log.Println("Failed to prepare the database")
+		logger.Log.Println("Failed to prepare the database: ", err)
 	}
-	database.Migrate()
+	if err := database.Migrate(); err != nil {
+		logger.Log.Println("Failed to prepare the database: ", err)
+	}
 	database.Close()
 	logger.Log.Println("Database set up successful")
 
