@@ -6,10 +6,10 @@ import (
 	"os"
 )
 
-const TempFolderPath string = "./internal/temp/"
-const FileFolderPath string = "./internal/files/"
+const tempFolderPath string = "./internal/temp/"
+const fileFolderPath string = "./internal/files/"
 
-func FileExists(path string) bool {
+func fileExists(path string) bool {
 	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		return false
@@ -17,7 +17,7 @@ func FileExists(path string) bool {
 	return !info.IsDir()
 }
 
-func IsFolderEmpty(path string) (bool, error) {
+func isFolderEmpty(path string) (bool, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return false, err
@@ -33,7 +33,7 @@ func IsFolderEmpty(path string) (bool, error) {
 	return false, err
 }
 
-func CopyFile(src, dst string) error {
+func copyFile(src, dst string) error {
 	source, err := os.Open(src)
 	if err != nil {
 		return err
@@ -50,7 +50,7 @@ func CopyFile(src, dst string) error {
 	return err
 }
 
-func FolderExists(path string) bool {
+func folderExists(path string) bool {
 	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		return false
@@ -59,79 +59,87 @@ func FolderExists(path string) bool {
 	return info.IsDir()
 }
 
-func CreateUserFolder(userID string) (bool, error) {
-	exists := FolderExists(FileFolderPath + userID)
+func CreateUserFolder(userID string) error {
+	exists := folderExists(fileFolderPath + userID)
 	if exists {
-		return false, errors.New("folder for this user already exists")
+		return errors.New("user folder already exists")
 	}
 
-	err := os.MkdirAll(FileFolderPath+userID, 0755)
-	if err != nil {
-		return false, err
+	if err := os.MkdirAll(fileFolderPath+userID, 0755); err != nil {
+		return err
 	}
 
-	return true, nil
+	return nil
 }
 
-func DeleteTempFile(name, userID string) (bool, error) {
-	exists := FileExists(TempFolderPath + userID + "/" + name)
+func DeleteTempFile(name, userID string) error {
+	exists := fileExists(tempFolderPath + userID + "/" + name)
 	if !exists {
-		return false, errors.New("there is no file with this name")
+		return errors.New("temp file not found")
 	}
 
-	err := os.Remove(TempFolderPath + userID + "/" + name)
-	if err != nil {
-		return false, err
+	if err := os.Remove(tempFolderPath + userID + "/" + name); err != nil {
+		return err
 	}
 
-	empty, err := IsFolderEmpty(TempFolderPath + userID)
+	empty, err := isFolderEmpty(tempFolderPath + userID)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if empty {
-		err := os.RemoveAll(TempFolderPath + userID)
-		if err != nil {
-			return false, err
+		if err := os.RemoveAll(tempFolderPath + userID); err != nil {
+			return err
 		}
 	}
 
-	return true, nil
+	return nil
 }
 
-func CreateUserTempFolder(userID string) (bool, error) {
-	exists := FolderExists(TempFolderPath + userID)
+func CreateUserTempFolder(userID string) error {
+	exists := folderExists(tempFolderPath + userID)
 	if exists {
-		return false, errors.New("folder for this user already exists")
+		return errors.New("user temp folder already exists")
 	}
 
-	err := os.Mkdir(TempFolderPath+userID, 0755)
-	if err != nil {
-		return false, err
+	if err := os.Mkdir(tempFolderPath+userID, 0755); err != nil {
+		return err
 	}
 
-	return true, nil
+	return nil
 }
 
-func MoveFile(userID, path, name string) (bool, error) {
-	exists := FileExists(TempFolderPath + userID + "/" + name)
+func MoveFile(userID, path, name string) error {
+	exists := fileExists(tempFolderPath + userID + "/" + name)
 	if !exists {
-		return false, errors.New("file with this name does not exist")
+		return errors.New("temp file not found")
 	}
 
-	exists = FolderExists(FileFolderPath + userID + "/" + path)
+	exists = folderExists(fileFolderPath + userID + "/" + path)
 	if !exists {
-		return false, errors.New("folder does not exist")
+		return errors.New("destination folder not found")
 	}
 
-	err := CopyFile(TempFolderPath+userID+"/"+name, FileFolderPath+userID+"/"+path)
-	if err != nil {
-		return false, err
+	if err := copyFile(tempFolderPath+userID+"/"+name, fileFolderPath+userID+"/"+path); err != nil {
+		return err
 	}
 
-	if ok, err := DeleteTempFile(name, userID); err != nil || !ok {
-		return false, err
+	if err := DeleteTempFile(name, userID); err != nil {
+		return err
 	}
 
-	return true, nil
+	return nil
+}
+
+func DeleteUserFile(userID, name, path string) error {
+	exists := fileExists(fileFolderPath + userID + "/" + path + "/" + name)
+	if !exists {
+		return errors.New("file not found under this path")
+	}
+
+	if err := os.Remove(fileFolderPath + userID + "/" + path + "/" + name); err != nil {
+		return err
+	}
+
+	return nil
 }
