@@ -18,5 +18,4 @@ func main() {
 	}
 	database.Close()
 	logger.Log.Println("Database set up successful")
-
 }
